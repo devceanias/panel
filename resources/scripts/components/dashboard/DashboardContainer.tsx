@@ -1,4 +1,15 @@
-import { Bars, ChevronDown, ChevronUp, Ellipsis, House, LayoutCellsLarge, Plus, SlidersVertical, TrashBin } from '@gravity-ui/icons';
+import {
+    Bars,
+    ChevronDown,
+    ChevronUp,
+    Ellipsis,
+    House,
+    LayoutCellsLarge,
+    Magnifier,
+    Plus,
+    SlidersVertical,
+    TrashBin,
+} from '@gravity-ui/icons';
 import { useStoreState } from 'easy-peasy';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -58,6 +69,7 @@ const DashboardContainer = () => {
         `${uuid}:dashboard_display_option`,
         'list',
     );
+    const [serverSearch, setServerSearch] = usePersistedState(`${uuid}:server_search`, '');
     const getApiType = (): string | undefined => {
         if (serverViewMode === 'owner') return 'owner';
         if (serverViewMode === 'admin-all') return 'admin-all';
@@ -66,8 +78,8 @@ const DashboardContainer = () => {
     };
 
     const { data: servers, error, mutate: mutateServers } = useSWR<PaginatedResult<Server>>(
-        ['/api/client/servers', serverViewMode, page],
-        () => getServers({ page, type: getApiType(), perPage: 100 }),
+        ['/api/client/servers', serverViewMode, page, serverSearch],
+        () => getServers({ page, type: getApiType(), query: serverSearch.trim() || undefined, perPage: 100 }),
         { revalidateOnFocus: false },
     );
     const { data: serverGroups, mutate: mutateServerGroups } = useSWR<ServerGroup[]>(
@@ -94,6 +106,10 @@ const DashboardContainer = () => {
         if (error) clearAndAddHttpError({ key: 'dashboard', error });
         if (!error) clearFlashes('dashboard');
     }, [error]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [serverSearch, serverViewMode]);
 
     const groupedServers = useMemo(() => {
         const groups = (serverGroups || []).map((group) => ({
@@ -277,7 +293,21 @@ const DashboardContainer = () => {
                         <MainPageHeader
                             title={getTitle()}
                             titleChildren={
-                                <div className='flex gap-4'>
+                                <div className='flex flex-wrap justify-end gap-3'>
+                                    <div className='relative h-9 min-w-56'>
+                                        <Magnifier
+                                            width={16}
+                                            height={16}
+                                            className='pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#ffffff66]'
+                                            fill='currentColor'
+                                        />
+                                        <input
+                                            className='h-9 w-full rounded-md border border-[#ffffff12] bg-[#ffffff11] pl-9 pr-3 text-sm text-zinc-100 outline-none transition placeholder:text-[#ffffff55] focus:border-brand/60 focus:bg-[#ffffff18]'
+                                            value={serverSearch}
+                                            onChange={(event) => setServerSearch(event.target.value)}
+                                            placeholder='Search servers'
+                                        />
+                                    </div>
                                     {rootAdmin && (
                                         <button
                                             className='inline-flex h-9 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md bg-[#ffffff11] px-3 py-1.5 text-sm font-medium text-[#ffffff88] transition-all hover:bg-[#ffffff23] hover:text-[#ffffff] focus-visible:outline-hidden'
@@ -420,12 +450,16 @@ const DashboardContainer = () => {
                                                         <House width={28} height={28} color='white' />
                                                     </div>
                                                     <h3 className='text-lg font-medium text-zinc-200 mb-2'>
-                                                        {serverViewMode === 'admin-all'
+                                                        {serverSearch.trim()
+                                                            ? 'No matching servers'
+                                                            : serverViewMode === 'admin-all'
                                                             ? 'No other servers found'
                                                             : 'No servers found'}
                                                     </h3>
                                                     <p className='text-sm text-zinc-400 max-w-sm'>
-                                                        {serverViewMode === 'admin-all'
+                                                        {serverSearch.trim()
+                                                            ? 'Try a different server name, UUID, description, or external ID.'
+                                                            : serverViewMode === 'admin-all'
                                                             ? 'There are no other servers to display.'
                                                             : 'There are no servers associated with your account.'}
                                                     </p>
@@ -518,12 +552,16 @@ const DashboardContainer = () => {
                                                         <House width={28} height={28} color='white' />
                                                     </div>
                                                     <h3 className='text-lg font-medium text-zinc-200 mb-2'>
-                                                        {serverViewMode === 'admin-all'
+                                                        {serverSearch.trim()
+                                                            ? 'No matching servers'
+                                                            : serverViewMode === 'admin-all'
                                                             ? 'No other servers found'
                                                             : 'No servers found'}
                                                     </h3>
                                                     <p className='text-sm text-zinc-400 max-w-sm'>
-                                                        {serverViewMode === 'admin-all'
+                                                        {serverSearch.trim()
+                                                            ? 'Try a different server name, UUID, description, or external ID.'
+                                                            : serverViewMode === 'admin-all'
                                                             ? 'There are no other servers to display.'
                                                             : 'There are no servers associated with your account.'}
                                                     </p>
