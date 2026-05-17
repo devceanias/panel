@@ -1,17 +1,18 @@
 import clsx from 'clsx';
 
-interface Props {
+interface Props extends React.HTMLAttributes<HTMLDivElement> {
     children: React.ReactNode;
     className?: string;
 }
 
-const PageListContainer = ({ className, children }: Props) => {
+const PageListContainer = ({ className, children, ...props }: Props) => {
     return (
         <div
             style={{
                 background: 'radial-gradient(124.75% 124.75% at 50.01% -10.55%, rgb(16, 16, 16) 0%, rgb(4, 4, 4) 100%)',
             }}
             className={clsx(className, 'p-2 border-[1px] border-[#ffffff12] rounded-xl')}
+            {...props}
         >
             <div className='flex h-full w-full flex-col gap-3 overflow-hidden rounded-lg'>{children}</div>
         </div>

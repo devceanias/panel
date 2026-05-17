@@ -74,6 +74,12 @@ class ServerTransformer extends BaseClientTransformer
                 'backupStorageMb' => $server->backup_storage_limit,
             ],
             'status' => $server->status,
+            'dashboard_group' => $server->serverGroup ? [
+                'id' => $server->serverGroup->id,
+                'name' => $server->serverGroup->name,
+                'position' => $server->serverGroup->position,
+            ] : null,
+            'dashboard_position' => $server->dashboard_position,
             // This field is deprecated, please use "status".
             'is_suspended' => $server->isSuspended(),
             // This field is deprecated, please use "status".

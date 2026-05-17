@@ -38,13 +38,13 @@ services:
         restart: always
         command: --default-authentication-plugin=mysql_native_password
         volumes:
-            - './srv/database:/var/lib/mysql'
+            - 'panel_database:/var/lib/mysql'
         environment:
             <<: *db-environment
             MYSQL_DATABASE: 'panel'
             MYSQL_USER: 'pterodactyl'
         ports:
-            - '3306:3306'
+            - '3307:3306'
     cache:
         image: redis:alpine
         restart: always
@@ -87,8 +87,11 @@ services:
             DB_CONNECTION: 'mariadb'
             DB_HOST: 'database'
             DB_PORT: '3306'
+            APP_KEY: 'base64:Da+ktIwd2pEsAoS7FS3Yx2fegF7qDfSq0TYktoMr0Uc='
+            HASHIDS_SALT: 'local-development'
             HASHIDS_LENGTH: 8
             WINGS_INTERNAL_IP: 'elytra'
+            ELYTRA_INTERNAL_IP: 'elytra'
             WINGS_DIR: '${PWD}/srv/'
             PYRODACTYL_DOCKER_DEV: 'true'
             MAIL_HOST: 'mailhog'
@@ -150,19 +153,7 @@ services:
             - '/var/run/docker.sock:/var/run/docker.sock'
             - '/etc/ssl/certs:/etc/ssl/certs:ro'
             - './srv/pterodactyl/config/:/etc/elytra/'
-
-            # The volumes below need to be the exact same path in the container as on the host.
-            #
-            # The paths are currently hardcoded in the container on first run, meaning if you move
-            # this repo on your host, you'll need to delete "srv" folder so the paths can be recreated.
-            #
-            # If you change these from $PWD, make sure to update `WINGS_DIR` in the panel service too.
-            # Do not change anything but the $PWD part as this is also hardcoded in the container.
-
-            - './srv/elytra/tmp/:${PWD}/srv/elytra/tmp/'
-            - './srv/elytra/docker/containers/:${PWD}/srv/elytra/docker/containers/'
-            - './srv/elytra/:${PWD}/srv/elytra/'
-            - './srv/elytra/logs/:${PWD}/srv/elytra/logs/'
+            - 'panel_elytra:/var/lib/pterodactyl'
 
 
     mailpit:
@@ -185,6 +176,8 @@ networks:
                 - subnet: 172.20.0.0/16
 
 volumes:
+    panel_database:
+    panel_elytra:
     panel_vendor:
     panel_storage:
     panel_bootstrap_cache:

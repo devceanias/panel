@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Pterodactyl\Exceptions\Http\Server\ServerStateConflictException;
-use Pterodactyl\Models\ServerSubdomain;
 
 /**
  * \Pterodactyl\Models\Server.
@@ -27,6 +26,8 @@ use Pterodactyl\Models\ServerSubdomain;
  * @property string|null $status
  * @property bool $skip_scripts
  * @property int $owner_id
+ * @property int|null $server_group_id
+ * @property int $dashboard_position
  * @property int $memory
  * @property int $overhead_memory
  * @property int $swap
@@ -156,6 +157,8 @@ class Server extends Model
     public static array $validationRules = [
         'external_id' => 'sometimes|nullable|string|between:1,191|unique:servers',
         'owner_id' => 'required|integer|exists:users,id',
+        'server_group_id' => 'nullable|integer|exists:server_groups,id',
+        'dashboard_position' => 'integer|min:0',
         'name' => 'required|string|min:1|max:191',
         'node_id' => 'required|exists:nodes,id',
         'description' => 'string',
@@ -188,6 +191,8 @@ class Server extends Model
         'node_id' => 'integer',
         'skip_scripts' => 'boolean',
         'owner_id' => 'integer',
+        'server_group_id' => 'integer',
+        'dashboard_position' => 'integer',
         'memory' => 'integer',
         'overhead_memory' => 'integer',
         'swap' => 'integer',
@@ -335,6 +340,11 @@ class Server extends Model
     public function node(): BelongsTo
     {
         return $this->belongsTo(Node::class);
+    }
+
+    public function serverGroup(): BelongsTo
+    {
+        return $this->belongsTo(ServerGroup::class, 'server_group_id');
     }
 
     /**

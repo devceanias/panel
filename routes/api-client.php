@@ -24,6 +24,14 @@ Route::get('/permissions', [Client\ClientController::class, 'permissions']);
 Route::get('/version', function () {
     return response()->json(['version' => config('app.version')]);
 });
+Route::prefix('/server-groups')->group(function () {
+    Route::get('/', [Client\ServerGroupController::class, 'index']);
+    Route::post('/', [Client\ServerGroupController::class, 'store']);
+    Route::post('/order', [Client\ServerGroupController::class, 'reorder']);
+    Route::patch('/{group}', [Client\ServerGroupController::class, 'update']);
+    Route::delete('/{group}', [Client\ServerGroupController::class, 'destroy']);
+    Route::put('/{group}/collapsed', [Client\ServerGroupController::class, 'collapsed']);
+});
 
 Route::prefix('/nests')->group(function () {
     Route::get('/', [Client\Nests\NestController::class, 'index'])->name('api:client.nests');

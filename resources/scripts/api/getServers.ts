@@ -5,13 +5,15 @@ interface QueryParams {
     query?: string;
     page?: number;
     type?: string;
+    perPage?: number;
 }
 
-export default ({ query, ...params }: QueryParams): Promise<PaginatedResult<Server>> => {
+export default ({ query, perPage, ...params }: QueryParams): Promise<PaginatedResult<Server>> => {
     return new Promise((resolve, reject) => {
         http.get('/api/client', {
             params: {
                 'filter[*]': query,
+                per_page: perPage,
                 ...params,
             },
         })

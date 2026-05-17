@@ -1,6 +1,6 @@
-import { Bars, ChevronDown, House, LayoutCellsLarge, SlidersVertical } from '@gravity-ui/icons';
+import { Bars, ChevronDown, ChevronUp, Ellipsis, House, LayoutCellsLarge, Plus, SlidersVertical, TrashBin } from '@gravity-ui/icons';
 import { useStoreState } from 'easy-peasy';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import useSWR from 'swr';
 
@@ -19,6 +19,14 @@ import { PageListContainer } from '@/components/elements/pages/PageList';
 import getServers from '@/api/getServers';
 import { PaginatedResult } from '@/api/http';
 import { Server } from '@/api/server/getServer';
+import {
+    ServerGroup,
+    createServerGroup,
+    deleteServerGroup,
+    getServerGroups,
+    reorderServerGroups,
+    setServerGroupCollapsed,
+} from '@/api/serverGroups';
 
 import useFlash from '@/plugins/useFlash';
 import { usePersistedState } from '@/plugins/usePersistedState';
@@ -57,9 +65,14 @@ const DashboardContainer = () => {
         return undefined;
     };
 
-    const { data: servers, error } = useSWR<PaginatedResult<Server>>(
+    const { data: servers, error, mutate: mutateServers } = useSWR<PaginatedResult<Server>>(
         ['/api/client/servers', serverViewMode, page],
-        () => getServers({ page, type: getApiType() }),
+        () => getServers({ page, type: getApiType(), perPage: 100 }),
+        { revalidateOnFocus: false },
+    );
+    const { data: serverGroups, mutate: mutateServerGroups } = useSWR<ServerGroup[]>(
+        '/api/client/server-groups',
+        getServerGroups,
         { revalidateOnFocus: false },
     );
 
@@ -81,6 +94,167 @@ const DashboardContainer = () => {
         if (error) clearAndAddHttpError({ key: 'dashboard', error });
         if (!error) clearFlashes('dashboard');
     }, [error]);
+
+    const groupedServers = useMemo(() => {
+        const groups = (serverGroups || []).map((group) => ({
+            ...group,
+            servers: [] as Server[],
+        }));
+        const groupsById = new Map<number, (typeof groups)[number]>();
+        groups.forEach((group) => groupsById.set(group.id, group));
+
+        const ungrouped = {
+            id: null,
+            name: 'Ungrouped',
+            position: Number.MAX_SAFE_INTEGER,
+            collapsed: false,
+            servers: [] as Server[],
+        };
+
+        (servers?.items || []).forEach((server) => {
+            const groupId = server.dashboardGroup?.id || null;
+            const group = groupId ? groupsById.get(groupId) : null;
+            (group || ungrouped).servers.push(server);
+        });
+
+        groups.forEach((group) => {
+            group.servers.sort((a, b) => a.dashboardPosition - b.dashboardPosition || a.name.localeCompare(b.name));
+        });
+        ungrouped.servers.sort((a, b) => a.dashboardPosition - b.dashboardPosition || a.name.localeCompare(b.name));
+
+        return [...groups, ungrouped].filter((group) => rootAdmin || group.servers.length > 0);
+    }, [serverGroups, servers?.items, rootAdmin]);
+
+    const persistServerOrder = async (nextGroups: typeof groupedServers) => {
+        await reorderServerGroups({
+            groups: nextGroups
+                .filter((group) => group.id !== null)
+                .map((group, position) => ({ id: group.id!, position })),
+            servers: nextGroups.flatMap((group) =>
+                group.servers.map((server, position) => ({
+                    id: server.internalId,
+                    groupId: group.id,
+                    position,
+                })),
+            ),
+        });
+
+        await mutateServers();
+        await mutateServerGroups();
+    };
+
+    const moveServer = async (server: Server, direction: -1 | 1) => {
+        const nextGroups = groupedServers.map((group) => ({ ...group, servers: [...group.servers] }));
+        const group = nextGroups.find((group) => group.servers.some((item) => item.uuid === server.uuid));
+        if (!group) return;
+
+        const index = group.servers.findIndex((item) => item.uuid === server.uuid);
+        const target = index + direction;
+        if (target < 0 || target >= group.servers.length) return;
+
+        const [item] = group.servers.splice(index, 1);
+        group.servers.splice(target, 0, item);
+
+        await persistServerOrder(nextGroups);
+    };
+
+    const moveServerToGroup = async (server: Server, groupId: number | null) => {
+        const nextGroups = groupedServers.map((group) => ({ ...group, servers: [...group.servers] }));
+        const currentGroup = nextGroups.find((group) => group.servers.some((item) => item.uuid === server.uuid));
+        const targetGroup = nextGroups.find((group) => group.id === groupId);
+        if (!currentGroup || !targetGroup) return;
+
+        currentGroup.servers = currentGroup.servers.filter((item) => item.uuid !== server.uuid);
+        targetGroup.servers.push(server);
+
+        await persistServerOrder(nextGroups);
+    };
+
+    const createGroup = async () => {
+        const name = window.prompt('Group name');
+        if (!name?.trim()) return;
+
+        await createServerGroup(name.trim());
+        await mutateServerGroups();
+    };
+
+    const removeGroup = async (group: { id: number; name: string }) => {
+        if (!window.confirm(`Remove the "${group.name}" group? Servers in it will move to Ungrouped.`)) return;
+
+        await deleteServerGroup(group.id);
+        await mutateServers();
+        await mutateServerGroups();
+    };
+
+    const toggleGroup = async (group: { id: number; collapsed: boolean }) => {
+        await setServerGroupCollapsed(group.id, !group.collapsed);
+        await mutateServerGroups(
+            (groups) => groups?.map((item) => (item.id === group.id ? { ...item, collapsed: !group.collapsed } : item)),
+            false,
+        );
+    };
+
+    const serverControls = (server: Server, groupServers: Server[]) => {
+        if (!rootAdmin) return null;
+
+        const currentGroupId = server.dashboardGroup?.id || null;
+        const index = groupServers.findIndex((item) => item.uuid === server.uuid);
+
+        return (
+            <div className='flex items-center gap-1'>
+                <button
+                    className='h-8 w-8 rounded-md bg-[#ffffff11] text-zinc-200 transition hover:bg-[#ffffff22] disabled:opacity-40'
+                    disabled={index <= 0}
+                    onClick={(event) => {
+                        event.preventDefault();
+                        void moveServer(server, -1);
+                    }}
+                    aria-label='Move server up'
+                >
+                    <ChevronUp width={16} height={16} className='mx-auto' fill='currentColor' />
+                </button>
+                <button
+                    className='h-8 w-8 rounded-md bg-[#ffffff11] text-zinc-200 transition hover:bg-[#ffffff22] disabled:opacity-40'
+                    disabled={index === groupServers.length - 1}
+                    onClick={(event) => {
+                        event.preventDefault();
+                        void moveServer(server, 1);
+                    }}
+                    aria-label='Move server down'
+                >
+                    <ChevronDown width={16} height={16} className='mx-auto' fill='currentColor' />
+                </button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button
+                            className='h-8 w-8 rounded-md bg-[#ffffff11] text-zinc-200 transition hover:bg-[#ffffff22]'
+                            aria-label='Server group actions'
+                            onClick={(event) => event.preventDefault()}
+                        >
+                            <Ellipsis width={18} height={18} className='mx-auto' fill='currentColor' />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className='z-99999' sideOffset={8}>
+                        <DropdownMenuItem
+                            disabled={currentGroupId === null}
+                            onSelect={() => void moveServerToGroup(server, null)}
+                        >
+                            Move to Ungrouped
+                        </DropdownMenuItem>
+                        {(serverGroups || []).map((group) => (
+                            <DropdownMenuItem
+                                key={group.id}
+                                disabled={currentGroupId === group.id}
+                                onSelect={() => void moveServerToGroup(server, group.id)}
+                            >
+                                Move to {group.name}
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+        );
+    };
 
     return (
         <PageContentBlock title={'Dashboard'} showFlashKey={'dashboard'}>
@@ -104,6 +278,15 @@ const DashboardContainer = () => {
                             title={getTitle()}
                             titleChildren={
                                 <div className='flex gap-4'>
+                                    {rootAdmin && (
+                                        <button
+                                            className='inline-flex h-9 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md bg-[#ffffff11] px-3 py-1.5 text-sm font-medium text-[#ffffff88] transition-all hover:bg-[#ffffff23] hover:text-[#ffffff] focus-visible:outline-hidden'
+                                            onClick={() => void createGroup()}
+                                        >
+                                            <Plus width={18} height={18} fill='currentColor' />
+                                            Group
+                                        </button>
+                                    )}
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <button className='inline-flex h-9 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md bg-[#ffffff11] px-3 py-1.5 text-sm font-medium text-[#ffffff88] transition-all hover:bg-[#ffffff23] hover:text-[#ffffff] focus-visible:outline-hidden'>
@@ -161,25 +344,75 @@ const DashboardContainer = () => {
                                 <Pagination data={servers} onPageSelect={setPage}>
                                     {({ items }) =>
                                         items.length > 0 ? (
-                                            <PageListContainer>
-                                                {items.map((server, index) => (
-                                                    <div
-                                                        key={server.uuid}
-                                                        className='transform-gpu skeleton-anim-2'
-                                                        style={{
-                                                            animationDelay: `${index * 50 + 50}ms`,
-                                                            animationTimingFunction:
-                                                                'linear(0,0.01,0.04 1.6%,0.161 3.3%,0.816 9.4%,1.046,1.189 14.4%,1.231,1.254 17%,1.259,1.257 18.6%,1.236,1.194 22.3%,1.057 27%,0.999 29.4%,0.955 32.1%,0.942,0.935 34.9%,0.933,0.939 38.4%,1 47.3%,1.011,1.017 52.6%,1.016 56.4%,1 65.2%,0.996 70.2%,1.001 87.2%,1)',
-                                                        }}
-                                                    >
-                                                        <ServerRow
-                                                            className='flex-row'
-                                                            key={server.uuid}
-                                                            server={server}
-                                                        />
-                                                    </div>
+                                            <div className='flex flex-col gap-4'>
+                                                {groupedServers.map((group, groupIndex) => (
+                                                    <Fragment key={group.id ?? 'ungrouped'}>
+                                                        {(group.id !== null || group.servers.length > 0) && (
+                                                            <div className='flex items-center justify-between rounded-lg border border-[#ffffff12] bg-[#ffffff08] px-4 py-3'>
+                                                                <button
+                                                                    className='flex min-w-0 items-center gap-2 text-left'
+                                                                    disabled={group.id === null}
+                                                                    onClick={() => {
+                                                                        if (group.id !== null) void toggleGroup(group);
+                                                                    }}
+                                                                >
+                                                                    {group.id !== null &&
+                                                                        (group.collapsed ? (
+                                                                            <ChevronDown
+                                                                                width={16}
+                                                                                height={16}
+                                                                                fill='currentColor'
+                                                                            />
+                                                                        ) : (
+                                                                            <ChevronUp
+                                                                                width={16}
+                                                                                height={16}
+                                                                                fill='currentColor'
+                                                                            />
+                                                                        ))}
+                                                                    <span className='truncate text-sm font-bold text-zinc-100'>
+                                                                        {group.name}
+                                                                    </span>
+                                                                    <span className='text-xs text-zinc-500'>
+                                                                        {group.servers.length}
+                                                                    </span>
+                                                                </button>
+                                                                {rootAdmin && group.id !== null && (
+                                                                    <button
+                                                                        className='h-8 w-8 rounded-md bg-[#ffffff11] text-zinc-200 transition hover:bg-red-500/25'
+                                                                        onClick={() => void removeGroup(group)}
+                                                                        aria-label='Remove group'
+                                                                    >
+                                                                        <TrashBin width={16} height={16} className='mx-auto' fill='currentColor' />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                        {!group.collapsed && group.servers.length > 0 && (
+                                                            <PageListContainer>
+                                                                {group.servers.map((server, index) => (
+                                                                    <div
+                                                                        key={server.uuid}
+                                                                        className='transform-gpu skeleton-anim-2'
+                                                                        style={{
+                                                                            animationDelay: `${(groupIndex + index) * 50 + 50}ms`,
+                                                                            animationTimingFunction:
+                                                                                'linear(0,0.01,0.04 1.6%,0.161 3.3%,0.816 9.4%,1.046,1.189 14.4%,1.231,1.254 17%,1.259,1.257 18.6%,1.236,1.194 22.3%,1.057 27%,0.999 29.4%,0.955 32.1%,0.942,0.935 34.9%,0.933,0.939 38.4%,1 47.3%,1.011,1.017 52.6%,1.016 56.4%,1 65.2%,0.996 70.2%,1.001 87.2%,1)',
+                                                                        }}
+                                                                    >
+                                                                        <div className='flex items-center gap-3'>
+                                                                            <ServerRow className='min-w-0 flex-1 flex-row' server={server} />
+                                                                            <div className='shrink-0'>
+                                                                                {serverControls(server, group.servers)}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </PageListContainer>
+                                                        )}
+                                                    </Fragment>
                                                 ))}
-                                            </PageListContainer>
+                                            </div>
                                         ) : (
                                             <div className='flex flex-col items-center justify-center py-12 px-4'>
                                                 <div className='text-center'>
@@ -206,23 +439,76 @@ const DashboardContainer = () => {
                                 <Pagination data={servers} onPageSelect={setPage}>
                                     {({ items }) =>
                                         items.length > 0 ? (
-                                            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                                                {items.map((server, index) => (
-                                                    <div
-                                                        key={server.uuid}
-                                                        className='transform-gpu skeleton-anim-2'
-                                                        style={{
-                                                            animationDelay: `${index * 50 + 50}ms`,
-                                                            animationTimingFunction:
-                                                                'linear(0,0.01,0.04 1.6%,0.161 3.3%,0.816 9.4%,1.046,1.189 14.4%,1.231,1.254 17%,1.259,1.257 18.6%,1.236,1.194 22.3%,1.057 27%,0.999 29.4%,0.955 32.1%,0.942,0.935 34.9%,0.933,0.939 38.4%,1 47.3%,1.011,1.017 52.6%,1.016 56.4%,1 65.2%,0.996 70.2%,1.001 87.2%,1)',
-                                                        }}
-                                                    >
-                                                        <ServerRow
-                                                            className='items-start! flex-col w-full gap-4 [&>div~div]:w-full'
-                                                            key={server.uuid}
-                                                            server={server}
-                                                        />
-                                                    </div>
+                                            <div className='flex flex-col gap-4'>
+                                                {groupedServers.map((group, groupIndex) => (
+                                                    <Fragment key={group.id ?? 'ungrouped'}>
+                                                        {(group.id !== null || group.servers.length > 0) && (
+                                                            <div className='flex items-center justify-between rounded-lg border border-[#ffffff12] bg-[#ffffff08] px-4 py-3'>
+                                                                <button
+                                                                    className='flex min-w-0 items-center gap-2 text-left'
+                                                                    disabled={group.id === null}
+                                                                    onClick={() => {
+                                                                        if (group.id !== null) void toggleGroup(group);
+                                                                    }}
+                                                                >
+                                                                    {group.id !== null &&
+                                                                        (group.collapsed ? (
+                                                                            <ChevronDown
+                                                                                width={16}
+                                                                                height={16}
+                                                                                fill='currentColor'
+                                                                            />
+                                                                        ) : (
+                                                                            <ChevronUp
+                                                                                width={16}
+                                                                                height={16}
+                                                                                fill='currentColor'
+                                                                            />
+                                                                        ))}
+                                                                    <span className='truncate text-sm font-bold text-zinc-100'>
+                                                                        {group.name}
+                                                                    </span>
+                                                                    <span className='text-xs text-zinc-500'>
+                                                                        {group.servers.length}
+                                                                    </span>
+                                                                </button>
+                                                                {rootAdmin && group.id !== null && (
+                                                                    <button
+                                                                        className='h-8 w-8 rounded-md bg-[#ffffff11] text-zinc-200 transition hover:bg-red-500/25'
+                                                                        onClick={() => void removeGroup(group)}
+                                                                        aria-label='Remove group'
+                                                                    >
+                                                                        <TrashBin width={16} height={16} className='mx-auto' fill='currentColor' />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                        {!group.collapsed && group.servers.length > 0 && (
+                                                            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                                                                {group.servers.map((server, index) => (
+                                                                    <div
+                                                                        key={server.uuid}
+                                                                        className='transform-gpu skeleton-anim-2'
+                                                                        style={{
+                                                                            animationDelay: `${(groupIndex + index) * 50 + 50}ms`,
+                                                                            animationTimingFunction:
+                                                                                'linear(0,0.01,0.04 1.6%,0.161 3.3%,0.816 9.4%,1.046,1.189 14.4%,1.231,1.254 17%,1.259,1.257 18.6%,1.236,1.194 22.3%,1.057 27%,0.999 29.4%,0.955 32.1%,0.942,0.935 34.9%,0.933,0.939 38.4%,1 47.3%,1.011,1.017 52.6%,1.016 56.4%,1 65.2%,0.996 70.2%,1.001 87.2%,1)',
+                                                                        }}
+                                                                    >
+                                                                        <div className='flex flex-col gap-2'>
+                                                                            <div className='flex justify-end'>
+                                                                                {serverControls(server, group.servers)}
+                                                                            </div>
+                                                                            <ServerRow
+                                                                                className='items-start! flex-col w-full gap-4 [&>div~div]:w-full'
+                                                                                server={server}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </Fragment>
                                                 ))}
                                             </div>
                                         ) : (

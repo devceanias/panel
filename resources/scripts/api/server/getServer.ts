@@ -50,6 +50,12 @@ export interface Server {
     allocations: Allocation[];
     egg: string;
     daemonType: string;
+    dashboardGroup: {
+        id: number;
+        name: string;
+        position: number;
+    } | null;
+    dashboardPosition: number;
 }
 
 export const rawDataToServerObject = ({ attributes: data }: FractalResponseData): Server => ({
@@ -79,6 +85,8 @@ export const rawDataToServerObject = ({ attributes: data }: FractalResponseData)
     ),
     egg: data.egg,
     daemonType: data.daemonType,
+    dashboardGroup: data.dashboard_group,
+    dashboardPosition: data.dashboard_position,
 });
 
 export default async (uuid: string): Promise<[Server, string[]]> => {

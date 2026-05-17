@@ -4,6 +4,7 @@ namespace Pterodactyl\Http\Controllers\Api\Client;
 
 use Pterodactyl\Models\Server;
 use Pterodactyl\Models\Permission;
+use Pterodactyl\Models\ServerGroup;
 use Spatie\QueryBuilder\QueryBuilder;
 use Spatie\QueryBuilder\AllowedFilter;
 use Pterodactyl\Models\Filters\MultiFieldServerFilter;
@@ -32,6 +33,7 @@ class ClientController extends ClientApiController
         // Start the query builder and ensure we eager load any requested relationships from the request.
         $builder = QueryBuilder::for(
             Server::query()->with($this->getIncludesForTransformer($transformer, ['node']))
+                ->with('serverGroup')
         )->allowedFilters([
             'uuid',
             'name',
@@ -65,7 +67,13 @@ class ClientController extends ClientApiController
             $builder = $builder->whereIn('servers.id', $user->accessibleServers()->pluck('id')->all());
         }
 
-        $servers = $builder->paginate(min($request->query('per_page', 50), 100))->appends($request->query());
+        $servers = $builder
+            ->orderByRaw('servers.server_group_id IS NULL')
+            ->orderBy(ServerGroup::select('position')->whereColumn('server_groups.id', 'servers.server_group_id'))
+            ->orderBy('servers.dashboard_position')
+            ->orderBy('servers.name')
+            ->paginate(min($request->query('per_page', 50), 100))
+            ->appends($request->query());
 
         return $this->fractal->transformWith($transformer)->collection($servers)->toArray();
     }

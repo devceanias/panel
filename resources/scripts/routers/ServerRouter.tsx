@@ -26,6 +26,7 @@ import { NotFound, ServerError } from '@/components/elements/ScreenBlock';
 import CommandMenu from '@/components/elements/commandk/CmdK';
 import ConflictStateRenderer from '@/components/server/ConflictStateRenderer';
 import InstallListener from '@/components/server/InstallListener';
+import SidebarPowerActions from '@/components/server/SidebarPowerActions';
 import ServerSidebarNavItem from '@/components/server/ServerSidebarNavItem';
 import TransferListener from '@/components/server/TransferListener';
 import WebsocketHandler from '@/components/server/WebsocketHandler';
@@ -303,6 +304,7 @@ const ServerRouter = () => {
                                 </DropdownMenu>
                             </div>
                             <div aria-hidden className='mt-8 mb-4 bg-[#ffffff33] min-h-[1px] w-6'></div>
+                            <SidebarPowerActions />
                             {/* Highlight */}
                             <div
                                 className='absolute bg-brand w-[3px] h-10 left-0 rounded-full pointer-events-none'
