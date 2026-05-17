@@ -141,6 +141,8 @@ const DashboardContainer = () => {
         return [...groups, ungrouped].filter((group) => rootAdmin || group.servers.length > 0);
     }, [serverGroups, servers?.items, rootAdmin]);
 
+    const orderedGroups = useMemo(() => groupedServers.filter((group) => group.id !== null), [groupedServers]);
+
     const persistServerOrder = async (nextGroups: typeof groupedServers) => {
         await reorderServerGroups({
             groups: nextGroups
@@ -199,6 +201,21 @@ const DashboardContainer = () => {
 
         await deleteServerGroup(group.id);
         await mutateServers();
+        await mutateServerGroups();
+    };
+
+    const moveGroup = async (groupId: number, direction: -1 | 1) => {
+        const groups = [...orderedGroups];
+        const index = groups.findIndex((group) => group.id === groupId);
+        const target = index + direction;
+        if (index < 0 || target < 0 || target >= groups.length) return;
+
+        const [group] = groups.splice(index, 1);
+        groups.splice(target, 0, group);
+
+        await reorderServerGroups({
+            groups: groups.map((group, position) => ({ id: group.id!, position })),
+        });
         await mutateServerGroups();
     };
 
@@ -408,13 +425,34 @@ const DashboardContainer = () => {
                                                                     </span>
                                                                 </button>
                                                                 {rootAdmin && group.id !== null && (
-                                                                    <button
-                                                                        className='h-8 w-8 rounded-md bg-[#ffffff11] text-zinc-200 transition hover:bg-red-500/25'
-                                                                        onClick={() => void removeGroup(group)}
-                                                                        aria-label='Remove group'
-                                                                    >
-                                                                        <TrashBin width={16} height={16} className='mx-auto' fill='currentColor' />
-                                                                    </button>
+                                                                    <div className='flex items-center gap-1'>
+                                                                        <button
+                                                                            className='h-8 w-8 rounded-md bg-[#ffffff11] text-zinc-200 transition hover:bg-[#ffffff22] disabled:opacity-40'
+                                                                            disabled={orderedGroups.findIndex((item) => item.id === group.id) <= 0}
+                                                                            onClick={() => void moveGroup(group.id, -1)}
+                                                                            aria-label='Move group up'
+                                                                        >
+                                                                            <ChevronUp width={16} height={16} className='mx-auto' fill='currentColor' />
+                                                                        </button>
+                                                                        <button
+                                                                            className='h-8 w-8 rounded-md bg-[#ffffff11] text-zinc-200 transition hover:bg-[#ffffff22] disabled:opacity-40'
+                                                                            disabled={
+                                                                                orderedGroups.findIndex((item) => item.id === group.id) ===
+                                                                                orderedGroups.length - 1
+                                                                            }
+                                                                            onClick={() => void moveGroup(group.id, 1)}
+                                                                            aria-label='Move group down'
+                                                                        >
+                                                                            <ChevronDown width={16} height={16} className='mx-auto' fill='currentColor' />
+                                                                        </button>
+                                                                        <button
+                                                                            className='h-8 w-8 rounded-md bg-[#ffffff11] text-zinc-200 transition hover:bg-red-500/25'
+                                                                            onClick={() => void removeGroup(group)}
+                                                                            aria-label='Remove group'
+                                                                        >
+                                                                            <TrashBin width={16} height={16} className='mx-auto' fill='currentColor' />
+                                                                        </button>
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         )}
@@ -507,13 +545,34 @@ const DashboardContainer = () => {
                                                                     </span>
                                                                 </button>
                                                                 {rootAdmin && group.id !== null && (
-                                                                    <button
-                                                                        className='h-8 w-8 rounded-md bg-[#ffffff11] text-zinc-200 transition hover:bg-red-500/25'
-                                                                        onClick={() => void removeGroup(group)}
-                                                                        aria-label='Remove group'
-                                                                    >
-                                                                        <TrashBin width={16} height={16} className='mx-auto' fill='currentColor' />
-                                                                    </button>
+                                                                    <div className='flex items-center gap-1'>
+                                                                        <button
+                                                                            className='h-8 w-8 rounded-md bg-[#ffffff11] text-zinc-200 transition hover:bg-[#ffffff22] disabled:opacity-40'
+                                                                            disabled={orderedGroups.findIndex((item) => item.id === group.id) <= 0}
+                                                                            onClick={() => void moveGroup(group.id, -1)}
+                                                                            aria-label='Move group up'
+                                                                        >
+                                                                            <ChevronUp width={16} height={16} className='mx-auto' fill='currentColor' />
+                                                                        </button>
+                                                                        <button
+                                                                            className='h-8 w-8 rounded-md bg-[#ffffff11] text-zinc-200 transition hover:bg-[#ffffff22] disabled:opacity-40'
+                                                                            disabled={
+                                                                                orderedGroups.findIndex((item) => item.id === group.id) ===
+                                                                                orderedGroups.length - 1
+                                                                            }
+                                                                            onClick={() => void moveGroup(group.id, 1)}
+                                                                            aria-label='Move group down'
+                                                                        >
+                                                                            <ChevronDown width={16} height={16} className='mx-auto' fill='currentColor' />
+                                                                        </button>
+                                                                        <button
+                                                                            className='h-8 w-8 rounded-md bg-[#ffffff11] text-zinc-200 transition hover:bg-red-500/25'
+                                                                            onClick={() => void removeGroup(group)}
+                                                                            aria-label='Remove group'
+                                                                        >
+                                                                            <TrashBin width={16} height={16} className='mx-auto' fill='currentColor' />
+                                                                        </button>
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         )}
