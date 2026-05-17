@@ -13,35 +13,51 @@ interface PowerButtonProps {
 
 const PowerButtons = ({ className }: PowerButtonProps) => {
     const [open, setOpen] = useState(false);
+    const [pendingAction, setPendingAction] = useState<PowerAction | null>(null);
     const status = ServerContext.useStoreState((state) => state.status.value);
     const instance = ServerContext.useStoreState((state) => state.socket.instance);
 
     const killable = status === 'stopping';
-    const onButtonClick = (
-        action: PowerAction | 'kill-confirmed',
-        e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
-    ): void => {
-        e.preventDefault();
-        if (action === 'kill') {
-            return setOpen(true);
-        }
 
-        if (instance) {
-            if (action === 'start') {
+    const actionLabels: Record<PowerAction, string> = {
+        start: 'Start Server',
+        restart: 'Restart Server',
+        stop: 'Stop Server',
+        kill: 'Forcibly Stop Process',
+    };
+
+    const actionDescriptions: Record<PowerAction, string> = {
+        start: 'Start this server now?',
+        restart: 'Restart this server now?',
+        stop: 'Stop this server gracefully?',
+        kill: 'Forcibly stopping a server can lead to data corruption.',
+    };
+
+    const onButtonClick = (action: PowerAction, e: React.MouseEvent<HTMLButtonElement, MouseEvent>): void => {
+        e.preventDefault();
+        setPendingAction(action);
+        setOpen(true);
+    };
+
+    const onConfirmed = (): void => {
+        if (instance && pendingAction) {
+            if (pendingAction === 'start') {
                 toast.success('Your server is starting!');
-            } else if (action === 'restart') {
+            } else if (pendingAction === 'restart') {
                 toast.success('Your server is restarting.');
             } else {
                 toast.success('Your server is being stopped.');
             }
             setOpen(false);
-            instance.send('set state', action === 'kill-confirmed' ? 'kill' : action);
+            instance.send('set state', pendingAction);
+            setPendingAction(null);
         }
     };
 
     useEffect(() => {
         if (status === 'offline') {
             setOpen(false);
+            setPendingAction(null);
         }
     }, [status]);
 
@@ -60,12 +76,15 @@ const PowerButtons = ({ className }: PowerButtonProps) => {
             <Dialog.Confirm
                 open={open}
                 hideCloseIcon
-                onClose={() => setOpen(false)}
-                title={'Forcibly Stop Process'}
+                onClose={() => {
+                    setOpen(false);
+                    setPendingAction(null);
+                }}
+                title={pendingAction ? actionLabels[pendingAction] : 'Power Action'}
                 confirm={'Continue'}
-                onConfirmed={onButtonClick.bind(this, 'kill-confirmed')}
+                onConfirmed={onConfirmed}
             >
-                Forcibly stopping a server can lead to data corruption.
+                {pendingAction ? actionDescriptions[pendingAction] : 'Confirm this power action?'}
             </Dialog.Confirm>
             <Can action={'control.start'}>
                 <button
