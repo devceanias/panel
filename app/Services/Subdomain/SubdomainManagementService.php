@@ -653,64 +653,21 @@ class SubdomainManagementService
         return $dnsRecords;
     }
 
-
-    private static function getDnsSubdomainHierarchy($domain)
-    {
-        /**
-         * Get the subdomain hierarchy for DNS record creation
-         *
-         * For 'servers.pyrodactyl.dev' returns 'servers'
-         * For 'api.v1.service.github.io' returns 'api.v1.service'
-         * For 'www.example.com' returns 'www'
-         * For 'example.com' returns ''
-         */
-
-        $cleanDomain = parse_url($domain, PHP_URL_HOST) ?: $domain;
-        $parts = explode('.', $cleanDomain);
-        $partCount = count($parts);
-
-        if ($partCount < 2) {
-            return ['error' => 'Invalid domain format'];
-        }
-
-        if ($partCount > 2) {
-            $subdomainParts = array_slice($parts, 0, $partCount - 2);
-            return implode('.', $subdomainParts);
-        }
-
-        return '';
-    }
-
+    /**
+     * Build the DNS record name from a server's subdomain.
+     *
+     * Returns the server name unchanged. Each DNS provider is responsible
+     * for resolving this against its own zone (see e.g. CloudflareProvider's
+     * normalizeRecordName, which appends the configured domain).
+     *
+     * Examples with a panel domain of 'example.com':
+     *   - 'test' -> 'test' -> resolved record: 'test.example.com'
+     *
+     * Examples with a panel domain of 'gameserver.example.com':
+     *   - 'test' -> 'test' -> resolved record: 'test.gameserver.example.com'
+     */
     public function createDnsRecord($serverName, $domain)
     {
-        /**
-         * Create DNS record in the format: servername.subdomain_hierarchy
-         */
-
-        $subdomainHierarchy = $this->getDnsSubdomainHierarchy($domain);
-
-        if ($subdomainHierarchy === '') {
-            return $serverName;
-        } else {
-            return $serverName . '.' . $subdomainHierarchy;
-        }
+        return $serverName;
     }
 }
-
-
-# TODO: Move these to dedicated test in the test suite
-/* $testCases = [ */
-/*     ['servername', 'servers.pyrodactyl.dev'], */
-/*     ['node1', 'api.v1.service.github.io'], */
-/*     ['web01', 'www.example.com'], */
-/*     ['db01', 'example.com'], */
-/*     ['app', 'staging.app.company.co.uk'],  # TODO: This one is a doozy and returns "DNS Record: app.staging.app.company" instead of "DNS Record: app.staging.app" due to DAMN TLDS!!! */
-/* ]; */
-/**/
-/* foreach ($testCases as [$serverName, $domain]) { */
-/*     $dnsRecord = createDnsRecord($serverName, $domain); */
-/*     echo "Server: $serverName, Domain: $domain\n"; */
-/*     echo "DNS Record: $dnsRecord\n"; */
-/*     echo "Subdomain Hierarchy: '" . getDnsSubdomainHierarchy($domain) . "'\n"; */
-/*     echo str_repeat('-', 50) . "\n"; */
-/* } */

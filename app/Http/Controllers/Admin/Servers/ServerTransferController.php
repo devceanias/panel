@@ -14,6 +14,7 @@ use Pterodactyl\Services\Nodes\NodeJWTService;
 use Pterodactyl\Repositories\Eloquent\NodeRepository;
 use Pterodactyl\Repositories\Wings\DaemonTransferRepository;
 use Pterodactyl\Contracts\Repository\AllocationRepositoryInterface;
+use Pterodactyl\Enums\Daemon\JwtScope;
 
 class ServerTransferController extends Controller
 {
@@ -78,6 +79,7 @@ class ServerTransferController extends Controller
             $token = $this->nodeJWTService
                 ->setExpiresAt(CarbonImmutable::now()->addMinutes(15))
                 ->setSubject($server->uuid)
+                ->setScopes(JwtScope::ServerTransfer)
                 ->handle($transfer->newNode, $server->uuid, 'sha256');
 
             // Notify the source node of the pending outgoing transfer.

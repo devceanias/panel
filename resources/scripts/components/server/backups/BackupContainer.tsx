@@ -38,7 +38,6 @@ import { useUnifiedBackups } from './useUnifiedBackups';
 const BackupItemElytra = lazy(() => import('./elytra/BackupItem'));
 const BackupItemWings = lazy(() => import('./wings/BackupItem'));
 
-
 // Context to share live backup progress across components
 export const LiveProgressContext = createContext<
     Record<

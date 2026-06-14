@@ -10,7 +10,7 @@ body:
     - label: I have searched the existing issues before opening this feature request.
       required: true
     - label: I am checking every checkbox without reading the label.
-      required: true
+      required: false
 
 - type: textarea
   attributes:

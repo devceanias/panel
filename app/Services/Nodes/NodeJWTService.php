@@ -6,6 +6,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 use Pterodactyl\Models\Node;
 use Pterodactyl\Models\User;
+use Pterodactyl\Enums\Daemon\JwtScope;
 use Lcobucci\JWT\Token\Plain;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
@@ -15,6 +16,8 @@ use Pterodactyl\Extensions\Lcobucci\JWT\Encoding\TimestampDates;
 class NodeJWTService
 {
     private array $claims = [];
+
+    private array $scopes;
 
     private ?User $user = null;
 
@@ -28,6 +31,13 @@ class NodeJWTService
     public function setClaims(array $claims): self
     {
         $this->claims = $claims;
+
+        return $this;
+    }
+
+    public function setScopes(JwtScope ...$scopes): self
+    {
+        $this->scopes = $scopes;
 
         return $this;
     }
@@ -60,7 +70,7 @@ class NodeJWTService
     /**
      * Generate a new JWT for a given node.
      */
-    public function handle(Node $node, ?string $identifiedBy, string $algo = 'md5'): Plain
+    public function handle(Node $node, ?string $identifiedBy, string $algo = 'sha256'): Plain
     {
         $identifier = hash($algo, $identifiedBy);
         $config = Configuration::forSymmetricSigner(new Sha256(), InMemory::plainText($node->getDecryptedKey()));
@@ -84,6 +94,11 @@ class NodeJWTService
         foreach ($this->claims as $key => $value) {
             $builder = $builder->withClaim($key, $value);
         }
+
+        // TODO: Add Assert
+        // Assert::notEmpty($this->scopes, 'Cannot generate a JWT without providing at least one scope.');
+
+        $builder = $builder->withClaim('scope', implode(' ', array_map(fn ($scope) => $scope->value, $this->scopes)));
 
         if (!is_null($this->user)) {
             $builder = $builder

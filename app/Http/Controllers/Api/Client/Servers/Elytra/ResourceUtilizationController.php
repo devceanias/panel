@@ -6,7 +6,7 @@ use Carbon\Carbon;
 use Pterodactyl\Models\Server;
 use Illuminate\Cache\Repository;
 use Pterodactyl\Transformers\Api\Client\StatsTransformer;
-use Pterodactyl\Repositories\Wings\DaemonServerRepository;
+use Pterodactyl\Repositories\Elytra\DaemonServerRepository;
 use Pterodactyl\Http\Controllers\Api\Client\ClientApiController;
 use Pterodactyl\Http\Requests\Api\Client\Servers\GetServerRequest;
 

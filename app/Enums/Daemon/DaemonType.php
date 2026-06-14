@@ -13,8 +13,8 @@ enum DaemonType: string
     ];
 
     private const RESOURCE_MAP = [
-        self::WINGS->value => \Pterodactyl\Http\Controllers\Api\Client\Servers\Elytra\ResourceUtilizationController::class,
-        self::ELYTRA->value => \Pterodactyl\Http\Controllers\Api\Client\Servers\Wings\ResourceUtilizationController::class,
+        self::WINGS->value => \Pterodactyl\Http\Controllers\Api\Client\Servers\Wings\ResourceUtilizationController::class,
+        self::ELYTRA->value => \Pterodactyl\Http\Controllers\Api\Client\Servers\Elytra\ResourceUtilizationController::class,
     ];
 
     public static function all(): array

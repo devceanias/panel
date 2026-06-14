@@ -1,5 +1,4 @@
-import { Cloud, CloudArrowUpIn, Lock, File } from '@gravity-ui/icons';
-
+import { Cloud, CloudArrowUpIn, File, Lock } from '@gravity-ui/icons';
 import { format, formatDistanceToNow } from 'date-fns';
 
 import Can from '@/components/elements/Can';
@@ -36,12 +35,12 @@ const BackupItem = ({ backup }: Props) => {
                         b.uuid !== backup.uuid
                             ? b
                             : {
-                                ...b,
-                                isSuccessful: parsed.is_successful || true,
-                                checksum: (parsed.checksum_type || '') + ':' + (parsed.checksum || ''),
-                                bytes: parsed.file_size || 0,
-                                completedAt: new Date(),
-                            },
+                                  ...b,
+                                  isSuccessful: parsed.is_successful || true,
+                                  checksum: (parsed.checksum_type || '') + ':' + (parsed.checksum || ''),
+                                  bytes: parsed.file_size || 0,
+                                  completedAt: new Date(),
+                              },
                     ),
                 }),
                 false,
@@ -90,7 +89,9 @@ const BackupItem = ({ backup }: Props) => {
                                         </span>
                                     )}
                                 </div>
-                                {backup.checksum && <p className='text-xs text-zinc-400 font-mono truncate'>{backup.checksum}</p>}
+                                {backup.checksum && (
+                                    <p className='text-xs text-zinc-400 font-mono truncate'>{backup.checksum}</p>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -118,9 +119,6 @@ const BackupItem = ({ backup }: Props) => {
                             {formatDistanceToNow(backup.createdAt, { includeSeconds: true, addSuffix: true })}
                         </p>
                     </div>
-
-
-
 
                     <Can action={['backup.download', 'backup.restore', 'backup.delete']} matchAny>
                         {!backup.completedAt ? <></> : <BackupContextMenu backup={backup} />}

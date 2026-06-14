@@ -1,6 +1,6 @@
 <?php
 
-namespace Pterodactyl\Repositories\Wings;
+namespace Pterodactyl\Repositories\Elytra;
 
 use Illuminate\Support\Arr;
 use Webmozart\Assert\Assert;
@@ -12,8 +12,8 @@ use Pterodactyl\Exceptions\Http\Server\FileSizeTooLargeException;
 use Pterodactyl\Exceptions\Http\Connection\DaemonConnectionException;
 
 /**
- * @method \Pterodactyl\Repositories\Wings\DaemonFileRepository setNode(\Pterodactyl\Models\Node $node)
- * @method \Pterodactyl\Repositories\Wings\DaemonFileRepository setServer(\Pterodactyl\Models\Server $server)
+ * @method \Pterodactyl\Repositories\Elytra\DaemonFileRepository setNode(\Pterodactyl\Models\Node $node)
+ * @method \Pterodactyl\Repositories\Elytra\DaemonFileRepository setServer(\Pterodactyl\Models\Server $server)
  */
 class DaemonFileRepository extends DaemonRepository
 {
@@ -37,7 +37,7 @@ class DaemonFileRepository extends DaemonRepository
                     'query' => ['file' => $path],
                 ]
             );
-        } catch (ClientException|TransferException $exception) {
+        } catch (ClientException | TransferException $exception) {
             throw new DaemonConnectionException($exception);
         }
 
@@ -291,7 +291,7 @@ class DaemonFileRepository extends DaemonRepository
             return $this->getHttpClient()->post(
                 sprintf('/api/servers/%s/files/pull', $this->server->uuid),
                 [
-                    'json' => array_filter($attributes, fn ($value) => !is_null($value)),
+                    'json' => array_filter($attributes, fn($value) => !is_null($value)),
                 ]
             );
         } catch (TransferException $exception) {

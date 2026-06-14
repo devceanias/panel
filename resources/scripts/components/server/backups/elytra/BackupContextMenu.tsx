@@ -26,6 +26,7 @@ import { Dialog } from '@/components/elements/dialog';
 
 import http, { httpErrorToHuman } from '@/api/http';
 import { getServerBackupDownloadUrl } from '@/api/server/backups';
+import { getGlobalDaemonType } from '@/api/server/getServer';
 import { ServerBackup } from '@/api/server/types';
 
 import { ApplicationStore } from '@/state';
@@ -34,7 +35,6 @@ import { ServerContext } from '@/state/server';
 import useFlash from '@/plugins/useFlash';
 
 import { useUnifiedBackups } from '../useUnifiedBackups';
-import { getGlobalDaemonType } from '@/api/server/getServer';
 
 interface Props {
     backup: ServerBackup;
@@ -343,8 +343,8 @@ const BackupContextMenu = ({ backup }: Props) => {
                         {loading
                             ? 'Restoring...'
                             : countdown > 0
-                                ? `Delete All & Restore (${countdown}s)`
-                                : 'Delete All & Restore Backup'}
+                              ? `Delete All & Restore (${countdown}s)`
+                              : 'Delete All & Restore Backup'}
                     </ActionButton>
                 </Dialog.Footer>
             </Dialog>

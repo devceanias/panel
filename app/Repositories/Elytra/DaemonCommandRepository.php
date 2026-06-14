@@ -1,6 +1,6 @@
 <?php
 
-namespace Pterodactyl\Repositories\Wings;
+namespace Pterodactyl\Repositories\Elytra;
 
 use Webmozart\Assert\Assert;
 use Pterodactyl\Models\Server;
@@ -9,8 +9,8 @@ use GuzzleHttp\Exception\TransferException;
 use Pterodactyl\Exceptions\Http\Connection\DaemonConnectionException;
 
 /**
- * @method \Pterodactyl\Repositories\Wings\DaemonCommandRepository setNode(\Pterodactyl\Models\Node $node)
- * @method \Pterodactyl\Repositories\Wings\DaemonCommandRepository setServer(\Pterodactyl\Models\Server $server)
+ * @method \Pterodactyl\Repositories\Elytra\DaemonCommandRepository setNode(\Pterodactyl\Models\Node $node)
+ * @method \Pterodactyl\Repositories\Elytra\DaemonCommandRepository setServer(\Pterodactyl\Models\Server $server)
  */
 class DaemonCommandRepository extends DaemonRepository
 {

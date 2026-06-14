@@ -1,6 +1,7 @@
 import http from '@/api/http';
 import { ServerBackup } from '@/api/server/types';
 import { rawDataToServerBackup } from '@/api/transformers';
+
 import { getGlobalDaemonType } from '../getServer';
 
 export default async (uuid: string, backup: string, name: string): Promise<ServerBackup> => {

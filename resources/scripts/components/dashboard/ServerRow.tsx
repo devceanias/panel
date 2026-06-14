@@ -39,30 +39,30 @@ const StatusIndicatorBox = styled.div<{ $status: ServerPowerState }>`
         border-radius: 9999px;
         transition: all 250ms ease-in-out;
 
-    box-shadow: ${({ $status }) => {
-        console.log($status);
-        if (!$status || $status === 'offline') {
-            return '0 0 12px 1px #C74343';
-        } else if ($status === 'running') {
-            return '0 0 12px 1px #43C760';
-        } else if ($status === 'installing') {
-            return '0 0 12px 1px #4381c7'; // Blue color for installing
-        } else {
-            return '0 0 12px 1px #c7aa43'; // Default for other statuses
-        }
-    }};
+        box-shadow: ${({ $status }) => {
+            console.log($status);
+            if (!$status || $status === 'offline') {
+                return '0 0 12px 1px #C74343';
+            } else if ($status === 'running') {
+                return '0 0 12px 1px #43C760';
+            } else if ($status === 'installing') {
+                return '0 0 12px 1px #4381c7'; // Blue color for installing
+            } else {
+                return '0 0 12px 1px #c7aa43'; // Default for other statuses
+            }
+        }};
 
-    background: ${({ $status }) => {
-        if (!$status || $status === 'offline') {
-            return 'linear-gradient(180deg, #C74343 0%, #C74343 100%)';
-        } else if ($status === 'running') {
-            return 'linear-gradient(180deg, #91FFA9 0%, #43C760 100%)';
-        } else if ($status === 'installing') {
-            return 'linear-gradient(180deg, #91c7ff 0%, #4381c7 100%)';
-        } else {
-            return 'linear-gradient(180deg, #c7aa43 0%, #c7aa43 100%)'; // Default for other statuses
-        }
-    }}
+        background: ${({ $status }) => {
+            if (!$status || $status === 'offline') {
+                return 'linear-gradient(180deg, #C74343 0%, #C74343 100%)';
+            } else if ($status === 'running') {
+                return 'linear-gradient(180deg, #91FFA9 0%, #43C760 100%)';
+            } else if ($status === 'installing') {
+                return 'linear-gradient(180deg, #91c7ff 0%, #4381c7 100%)';
+            } else {
+                return 'linear-gradient(180deg, #c7aa43 0%, #c7aa43 100%)'; // Default for other statuses
+            }
+        }};
     }
 `;
 
@@ -151,10 +151,10 @@ const ServerRow = ({ server, className }: { server: Server; className?: string }
                                 {server.isTransferring
                                     ? 'Transferring'
                                     : server.status === 'installing'
-                                        ? 'Installing'
-                                        : server.status === 'restoring_backup'
-                                            ? 'Restoring Backup'
-                                            : 'Unavailable'}
+                                      ? 'Installing'
+                                      : server.status === 'restoring_backup'
+                                        ? 'Restoring Backup'
+                                        : 'Unavailable'}
                             </span>
                         </div>
                     ) : (

@@ -8,7 +8,7 @@ use Pterodactyl\Facades\Activity;
 use Psr\Http\Message\ResponseInterface;
 use GuzzleHttp\Exception\BadResponseException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
-use Pterodactyl\Repositories\Wings\DaemonCommandRepository;
+use Pterodactyl\Repositories\Elytra\DaemonCommandRepository;
 use Pterodactyl\Http\Controllers\Api\Client\ClientApiController;
 use Pterodactyl\Http\Requests\Api\Client\Servers\SendCommandRequest;
 use Pterodactyl\Exceptions\Http\Connection\DaemonConnectionException;

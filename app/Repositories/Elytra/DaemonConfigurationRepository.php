@@ -1,6 +1,6 @@
 <?php
 
-namespace Pterodactyl\Repositories\Wings;
+namespace Pterodactyl\Repositories\Elytra;
 
 use Pterodactyl\Models\Node;
 use Psr\Http\Message\ResponseInterface;
@@ -8,13 +8,13 @@ use GuzzleHttp\Exception\TransferException;
 use Pterodactyl\Exceptions\Http\Connection\DaemonConnectionException;
 
 /**
- * @method \Pterodactyl\Repositories\Wings\DaemonConfigurationRepository setNode(\Pterodactyl\Models\Node $node)
- * @method \Pterodactyl\Repositories\Wings\DaemonConfigurationRepository setServer(\Pterodactyl\Models\Server $server)
+ * @method \Pterodactyl\Repositories\Elytra\DaemonConfigurationRepository setNode(\Pterodactyl\Models\Node $node)
+ * @method \Pterodactyl\Repositories\Elytra\DaemonConfigurationRepository setServer(\Pterodactyl\Models\Server $server)
  */
 class DaemonConfigurationRepository extends DaemonRepository
 {
     /**
-     * Returns system information from the wings instance.
+     * Returns system information from the elytra instance.
      *
      * @throws DaemonConnectionException
      */

@@ -23,7 +23,7 @@ use Pterodactyl\Http\Requests\Api\Client\Servers\Settings\PreviewEggRequest;
 use Pterodactyl\Http\Requests\Api\Client\Servers\Settings\ApplyEggChangeRequest;
 use Pterodactyl\Http\Requests\Api\Client\Servers\Settings\ReinstallServerRequest;
 use Pterodactyl\Services\Servers\StartupModificationService;
-use Pterodactyl\Repositories\Wings\DaemonFileRepository;
+use Pterodactyl\Repositories\Elytra\DaemonFileRepository;
 
 class SettingsController extends ClientApiController
 {

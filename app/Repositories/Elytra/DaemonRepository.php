@@ -1,6 +1,6 @@
 <?php
 
-namespace Pterodactyl\Repositories\Wings;
+namespace Pterodactyl\Repositories\Elytra;
 
 use GuzzleHttp\Client;
 use Pterodactyl\Models\Node;
@@ -9,8 +9,8 @@ use Pterodactyl\Models\Server;
 use Illuminate\Contracts\Foundation\Application;
 
 /**
- * @method \Pterodactyl\Repositories\Wings\DaemonRepository setNode(\Pterodactyl\Models\Node $node)
- * @method \Pterodactyl\Repositories\Wings\DaemonRepository setServer(\Pterodactyl\Models\Server $server)
+ * @method \Pterodactyl\Repositories\Elytra\DaemonRepository setNode(\Pterodactyl\Models\Node $node)
+ * @method \Pterodactyl\Repositories\Elytra\DaemonRepository setServer(\Pterodactyl\Models\Server $server)
  */
 abstract class DaemonRepository
 {
@@ -21,9 +21,7 @@ abstract class DaemonRepository
     /**
      * DaemonRepository constructor.
      */
-    public function __construct(protected Application $app)
-    {
-    }
+    public function __construct(protected Application $app) {}
 
     /**
      * Set the server model this request is stemming from.
